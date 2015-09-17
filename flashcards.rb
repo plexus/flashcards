@@ -11,6 +11,6 @@ loop do
   print "\r\n #{hiragana}"
   exit if STDIN.getch == "\u0003"
   puts " #{romaji}"
-  system("say #{romaji} &") if ENV["SPEAK"]
+  system("say #{hiragana} &") if ENV["SPEAK"]
 end
 
