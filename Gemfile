@@ -5,5 +5,6 @@ gem "sinatra"
 group :test do
   gem "rack-test", require: "rack/test"
   gem "mocha", require: false
+  gem "capybara", require: false
 end
 

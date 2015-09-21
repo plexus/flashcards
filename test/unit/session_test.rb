@@ -4,6 +4,70 @@ describe Session do
   let(:deck) { Deck.read_from_csv("alphabet") }
   let(:session) { Session.new(deck_id: "alphabet") }
 
+  describe "::new" do
+    it "should set a secure random uuid as id by default" do
+      SecureRandom.stubs(:uuid).returns("deadbeef42")
+      Session.new(deck_id: "alphabet")
+      assert_equal "deadbeef42", session.id
+    end
+
+    it "should use the given id if set" do
+      session = Session.new(id: "foo", deck_id: "alphabet")
+      assert_equal "foo", session.id
+    end
+  end
+
+  describe "::load" do
+    before do
+      @tempfile = Tempfile.new(["session", ".yml"])
+      Session.stubs(:directory).returns(Pathname.new(File.dirname(@tempfile.path)))
+    end
+
+    it "should load a session from disk" do
+      id = File.basename(@tempfile.path, ".yml")
+      data = {
+        id: id,
+        deck_id: "alphabet",
+        answers: [true, nil, true]
+      }
+      @tempfile.write(data.to_yaml)
+      @tempfile.close
+      session = Session.load(id)
+      assert_equal id, session.id
+      assert_equal data[:deck_id], session.deck_id
+      assert_equal data[:answers], session.answers
+    end
+
+    it "should raise a NotFound error if the file could not be found" do
+      assert_raises(Session::NotFound) { Session.load("foobarius") }
+    end
+  end
+
+  describe "#save" do
+    before do
+      @tempfile = Tempfile.new(["session", ".yml"])
+      Session.stubs(:directory).returns(Pathname.new(File.dirname(@tempfile.path)))
+    end
+
+    it "should persist a session to disk" do
+      session.answer(0)
+      session.save
+      expected = {
+        id: session.id,
+        deck_id: session.deck_id,
+        answers: [true]
+      }
+      actual = YAML.load_file(Session.directory.join("#{session.id}.yml"))
+      assert_equal expected, actual
+    end
+
+    it "should create directories as needed" do
+      FileUtils.rm_rf(Session.directory)
+      session.save
+      assert File.exists?(Session.directory.join("#{session.id}.yml"))
+    end
+  end
+
   describe "#deck" do
     it "should return the deck referenced by deck_id" do
       assert_instance_of Deck, session.deck

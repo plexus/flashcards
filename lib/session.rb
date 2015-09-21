@@ -1,9 +1,37 @@
+require "securerandom"
+require "yaml/store"
+
 class Session
 
-  attr_reader :deck_id, :answers
+  class NotFound < StandardError; end
 
-  def initialize(deck_id:, answers: [])
-    @deck_id, @answers = deck_id, answers
+  def self.directory
+    Root.join("data", ENV["RACK_ENV"], "sessions")
+  end
+
+  def self.load(id)
+    path = directory.join("#{id}.yml")
+    raise NotFound unless File.exist?(path)
+    db = YAML::Store.new(path)
+    db.transaction do
+      values = db.roots.map { |key| db[key] }
+      data = Hash[db.roots.zip(values)]
+      new(**data)
+    end
+  end
+
+  attr_reader :id, :deck_id, :answers
+
+  def initialize(id: SecureRandom.uuid, deck_id:, answers: [])
+    @id, @deck_id, @answers = id, deck_id, answers
+  end
+
+  def save
+    FileUtils.mkdir_p(self.class.directory) unless File.directory?(self.class.directory)
+    db = YAML::Store.new(self.class.directory.join("#{id}.yml"))
+    db.transaction do
+      db[:id], db[:deck_id], db[:answers] = id, deck_id, answers
+    end
   end
 
   def deck

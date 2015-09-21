@@ -1,1 +1,4 @@
 .rbenv-gemsets
+data/test
+data/development
+

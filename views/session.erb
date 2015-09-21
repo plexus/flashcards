@@ -16,11 +16,11 @@
   <div class="controls">
     <button id="show">reveal</button>
 
-    <form id="got-it" action="/session/cards/<%= @card.id %>" method="POST">
+    <form id="got-it" action="/sessions/<%= @session.id %>/cards/<%= @card.id %>" method="POST">
       <button>remembered</button>
     </form>
 
-    <form action="/" method="GET">
+    <form action="/sessions/<%= @session.id %>" method="GET">
       <button>next</button>
     </form>
   </div>
