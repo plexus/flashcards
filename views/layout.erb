@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+  <meta charset="UTF-8">
+  <title>flashcards</title>
+  <script src="/js/jquery-2.1.4.min.js"></script>
+  <style type="text/css">
+    body {
+      text-align: center;
+    }
+    .card {
+      font-size: 72px;
+    }
+    .back {
+      opacity: 0;
+      transition: opacity 250ms ease-in-out;
+    }
+    .controls {
+      margin: 36px 0;
+    }
+    form {
+      display: inline-block;
+    }
+  </style>
+</head>
+<body>
+  <%= yield %>
+</body>
+</html>
+
