@@ -1,7 +1,7 @@
 require_relative "../test_helper.rb"
 
 describe Session do
-  let(:deck) { Deck.new("alphabet") }
+  let(:deck) { Deck.read_from_csv("alphabet") }
   let(:session) { Session.new(deck_id: "alphabet") }
 
   describe "#deck" do

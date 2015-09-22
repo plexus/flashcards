@@ -2,9 +2,10 @@ require_relative "../test_helper.rb"
 
 describe Deck do
 
-  let(:deck) { Deck.new("hiragana") }
 
-  describe "#cards" do
+  let(:deck) { Deck.read_from_csv("hiragana") }
+
+  describe "::read_from_csv" do
     it "should load all rows from the named csv file" do
       rows = File.open(Root.join("data", "decks", "hiragana.csv"), "r").readlines.count - 1
       assert_equal rows, deck.cards.size
@@ -14,11 +15,6 @@ describe Deck do
       cards = deck.cards
       assert_equal Deck::Card, cards.map(&:class).uniq.first
       assert_equal Deck::Card.new(0, "あ", "a"), cards.first
-    end
-
-    it "should memoize cards" do
-      cards = deck.cards
-      assert_equal cards.object_id, deck.cards.object_id
     end
   end
 

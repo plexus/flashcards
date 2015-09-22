@@ -7,7 +7,7 @@ class Session
   end
 
   def deck
-    @deck ||= Deck.new(deck_id)
+    @deck ||= Deck.read_from_csv(deck_id)
   end
 
   def pile
