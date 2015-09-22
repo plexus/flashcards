@@ -36,5 +36,5 @@ Start the application with the specific deck:
 
 Make sure you have all dependencies installed. See Usage.
 
-    $ ruby test/all.rb
+    $ ruby test/run.rb
 
