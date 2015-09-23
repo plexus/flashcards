@@ -15,6 +15,10 @@ describe Answer do
       end
     end
 
+    it "should set easing to 2.0 by default" do
+      assert_equal 2.0, answer.easing
+    end
+
     it "should set interval if given" do
       assert_equal 12, Answer.new(12).interval
     end
@@ -23,6 +27,10 @@ describe Answer do
       Timecop.freeze do
         assert_equal Time.now - 3600, Answer.new(1, Time.now - 3600).at
       end
+    end
+
+    it "should set easing if given" do
+      assert_equal 2.2, Answer.new(1, Time.now, 2.2).easing
     end
   end
 
@@ -41,6 +49,13 @@ describe Answer do
       end
     end
 
+    it "should compare against easing" do
+      Timecop.freeze do
+        assert Answer.new == Answer.new
+        assert Answer.new != Answer.new(1, Time.now, 2.2)
+      end
+    end
+
     it "should compare wether the given object is an Answer" do
       Timecop.freeze do
         assert Answer.new == Answer.new
@@ -55,12 +70,17 @@ describe Answer do
       assert_equal 15, answer.interval
     end
 
-    it "should double interval for subsequent correct answers" do
+    it "should increment easing by 0.2" do
       answer.correct
-      answer.correct
-      assert_equal 30, answer.interval
-      answer.correct
-      assert_equal 60, answer.interval
+      assert_equal 2.2, answer.easing
+    end
+
+    it "should multiply interval with the easing factor for subsequent correct answers" do
+      answer.correct # easing 2.2
+      answer.correct # easing 2.4
+      assert_equal (15 * 2.4).round(1), answer.interval
+      answer.correct # easing 2.6
+      assert_equal (15 * 2.4 * 2.6).round(1), answer.interval
     end
 
     it "should set at to the current time" do
@@ -77,6 +97,17 @@ describe Answer do
       answer = Answer.new(10)
       answer.incorrect
       assert_equal 1, answer.interval
+    end
+
+    it "should decrement easing by 0.2" do
+      answer.incorrect
+      assert_equal 1.8, answer.easing
+    end
+
+    it "should never decrement easing below 1.0" do
+      answer = Answer.new(1, Time.now, 1.0)
+      answer.incorrect
+      assert_equal 1.0, answer.easing
     end
 
     it "should set at to the current time" do

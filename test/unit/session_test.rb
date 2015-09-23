@@ -52,11 +52,12 @@ describe Session do
     it "should persist a session to disk" do
       Timecop.freeze do
         session.answer(card_id: 0, flag: "incorrect")
+        answer = session.answers[0]
         session.save
         expected = {
           id: session.id,
           deck_id: session.deck_id,
-          answers: [Answer.new]
+          answers: [answer]
         }
         actual = YAML.load_file(Session.directory.join("#{session.id}.yml"))
         assert_equal expected, actual
