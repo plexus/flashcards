@@ -50,15 +50,17 @@ describe Session do
     end
 
     it "should persist a session to disk" do
-      session.answer(0)
-      session.save
-      expected = {
-        id: session.id,
-        deck_id: session.deck_id,
-        answers: [true]
-      }
-      actual = YAML.load_file(Session.directory.join("#{session.id}.yml"))
-      assert_equal expected, actual
+      Timecop.freeze do
+        session.answer(card_id: 0, flag: "correct")
+        session.save
+        expected = {
+          id: session.id,
+          deck_id: session.deck_id,
+          answers: [Answer.new(1)]
+        }
+        actual = YAML.load_file(Session.directory.join("#{session.id}.yml"))
+        assert_equal expected, actual
+      end
     end
 
     it "should create directories as needed" do
@@ -80,51 +82,119 @@ describe Session do
     end
   end
 
+  describe "#next_card" do
+    it "should return the first card of the pile" do
+      assert_equal session.next_card, session.pile.first
+    end
+
+    it "should return the first card only if it is due to repeat" do
+      deck.cards.each { |card| session.answer(card_id: card.id, flag: "correct") }
+      first_card = session.pile.first
+      answer = session.answers[first_card.id]
+
+      assert_nil session.next_card
+      Timecop.freeze(answer.repeat_at) do
+        assert_equal first_card, session.next_card
+      end
+    end
+  end
+
   describe "#pile" do
     it "should return all cards from the deck" do
       assert_equal deck.cards, session.pile
     end
 
-    it "should exclude answered cards" do
-      answers = []
-      answers[10] = true
-      answers[15] = true
+    it "should sort unanswered cards on top" do
+      head = deck.cards.last(3).reverse
+      answers = (deck.cards - head).map { Answer.new }
       session = Session.new(deck_id: "alphabet", answers: answers)
-      expected = deck.cards
-      expected.delete_at(15)
-      expected.delete_at(10)
-      assert_equal expected, session.pile
+      assert_starts_with head, session.pile
     end
 
-    it "should be empty if all cards are answered" do
-      answers = deck.cards.map { true }
+    it "should sort answered cards to the bottom by their repeat time in ascending order" do
+      answers = []
+      answers[15] = Answer.new(0, Time.now)  # will repeat in 1 minute
+      answers[10] = Answer.new(10, Time.now) # will repeat in 150 minutes
       session = Session.new(deck_id: "alphabet", answers: answers)
-      assert_empty session.pile
+      tail = [deck.cards[15], deck.cards[10]]
+      assert_ends_with tail, session.pile
+    end
+  end
+
+  describe "#answers" do
+    it "should have nil answers by default" do
+      deck.cards.each do |card|
+        assert_nil session.answers[card.id]
+      end
+    end
+
+    it "should only expose a frozen array" do
+      # enforces to use Session#answer
+      assert_raises { session.answers.pop }
+      assert session.answers.frozen?
+    end
+
+    it "should freeze all answers" do
+      # enforces to use Session#answer
+      assert_raises { session.answers.first.answer }
+      assert session.answers.all?(&:frozen?)
     end
   end
 
   describe "#answer" do
-    it "should mark a card as answered by id" do
-      deck.cards.each do |card|
-        session.answer(card.id)
+    it "should initialize a correct answer on the card id by default" do
+      Timecop.freeze do
+        session.answer(card_id: 15, flag: "correct")
+        assert_equal Answer.new(1), session.answers[15]
       end
-      assert_empty session.pile
+    end
+
+    it "should store an incorrect answer on the card id" do
+      Timecop.freeze do
+        session.answer(card_id: 15, flag: "incorrect")
+        assert_equal Answer.new(0), session.answers[15]
+      end
+    end
+
+    it "should increment a correct answer on the card id" do
+      Timecop.freeze(Time.now - 120) do
+        session.answer(card_id: 15, flag: "correct")
+      end
+      Timecop.freeze do
+        session.answer(card_id: 15, flag: "correct")
+        assert_equal Answer.new(2, Time.now), session.answers[15]
+      end
     end
 
     it "should coerce string ids" do
-      deck.cards.each do |card|
-        session.answer(card.id.to_s)
+      Timecop.freeze do
+        session.answer(card_id: "15", flag: "correct")
+        assert_equal Answer.new(1, Time.now), session.answers[15]
       end
-      assert_empty session.pile
     end
 
     it "should ignore invalid ids" do
-      session.answer("")
-      session.answer(nil)
-      session.answer(-1)
-      session.answer(deck.cards.size + 1)
+      session.answer(card_id: "", flag: "correct")
+      session.answer(card_id: nil, flag: "correct")
+      session.answer(card_id: -1, flag: "correct")
+      session.answer(card_id: deck.cards.size + 1, flag: "correct")
       assert_equal deck.cards, session.pile
       assert_empty session.answers
+    end
+  end
+
+  describe "#next_card_at" do
+    it "should return the current time if the next card has not been answered" do
+      Timecop.freeze do
+        assert_equal Time.now, session.next_card_at
+      end
+    end
+
+    it "should return the due time of the next card if it has been answered" do
+      Timecop.freeze do
+        deck.cards.each { |card| session.answer(card_id: card.id, flag: "incorrect") }
+        assert_equal Time.now + 60, session.next_card_at
+      end
     end
   end
 

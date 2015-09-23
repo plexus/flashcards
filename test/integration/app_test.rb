@@ -61,9 +61,11 @@ describe "app" do
     end
 
     it "should mark the given card_id as answered" do
-      post "/sessions/#{@session.id}/cards/0"
-      session = Session.load(@session.id)
-      assert_equal [true], session.answers
+      Timecop.freeze do
+        post "/sessions/#{@session.id}", card_id: 1, flag: "correct"
+        session = Session.load(@session.id)
+        assert_equal [nil, Answer.new(1)], session.answers
+      end
     end
 
     it "should do nothing on invalid input" do

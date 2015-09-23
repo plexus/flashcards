@@ -19,9 +19,9 @@ get "/sessions/:session_id" do |session_id|
   erb :session
 end
 
-post "/sessions/:session_id/cards/:card_id" do |session_id, card_id|
+post "/sessions/:session_id" do |session_id|
   session = Session.load(session_id)
-  session.answer(card_id)
+  session.answer(card_id: params[:card_id], flag: params[:flag])
   session.save
   redirect to("/sessions/#{session_id}")
 end

@@ -1,7 +1,7 @@
 <% if @card.nil? %>
-  <p>No more cards left. Well done.</p>
+  <p>No more cards left. Take a break, and come back in <span class="wait-seconds"><%= (@session.next_card_at - Time.now).to_i %></span> seconds.</p>
   <form action="/restart" method="POST">
-    <button>Start over</button>
+    <button>I want to start a new session</button>
   </form>
 <% else %>
   <div class="card">
@@ -14,14 +14,16 @@
   </div>
 
   <div class="controls">
-    <button id="show">reveal</button>
-
-    <form id="got-it" action="/sessions/<%= @session.id %>/cards/<%= @card.id %>" method="POST">
+    <form action="/sessions/<%= @session.id %>" method="POST">
+      <input type="hidden" name="card_id" value="<%= @card.id %>">
+      <input type="hidden" name="flag" value="correct">
       <button>remembered</button>
     </form>
 
-    <form action="/sessions/<%= @session.id %>" method="GET">
-      <button>next</button>
+    <form id="forgot" action="/sessions/<%= @session.id %>" method="POST">
+      <input type="hidden" name="card_id" value="<%= @card.id %>">
+      <input type="hidden" name="flag" value="incorrect">
+      <button>forgot</button>
     </form>
   </div>
 <% end %>
@@ -29,11 +31,44 @@
 <script>
 $(function() {
   var back = $(".card .back");
+  var waitSeconds = $(".wait-seconds");
 
-  $(document).on("click", "#show", function() {
+  // delay submitting the forms to reveal the answer
+  $("form").one("submit", function(event) {
+    var form = $(this);
+    if (parseFloat(back.css("opacity")) == 1) { form.submit(); }
+    event.preventDefault();
     back.css("opacity", 1);
-    $("#show").prop("disabled", true);
+    $("button").prop("disabled", true);
+    setTimeout(function() {
+      form.submit();
+    }, 3000);
   });
+
+  // accurate countdown with callback
+  function countdown(seconds, callback, last) {
+    var last = last || +(new Date);
+    var now = +(new Date);
+    seconds -= (now - last) / 1000;
+    if (seconds >= 0) {
+      setTimeout(function() {
+        countdown(seconds, callback, now);
+      }, 100);
+    }
+    callback.call(null, seconds);
+  };
+
+  // offer a countdown with auto reload if the user has to wait
+  if (waitSeconds.size() > 0) {
+    var seconds = parseInt(waitSeconds.text());
+    countdown(seconds, function(seconds) {
+      if (seconds <= 0) {
+        document.location.reload();
+      } else {
+        waitSeconds.text(Math.floor(seconds));
+      }
+    });
+  }
 });
 </script>
 
