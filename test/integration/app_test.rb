@@ -64,7 +64,9 @@ describe "app" do
       Timecop.freeze do
         post "/sessions/#{@session.id}", card_id: 1, flag: "correct"
         session = Session.load(@session.id)
-        assert_equal [nil, Answer.new(1)], session.answers
+        answer = Answer.new
+        answer.correct
+        assert_equal [nil, answer], session.answers
       end
     end
 

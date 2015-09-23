@@ -5,8 +5,8 @@ describe Answer do
   let(:answer) { Answer.new }
 
   describe "::new" do
-    it "should set count to 0 by default" do
-      assert_equal 0, answer.count
+    it "should set interval to 1 by default" do
+      assert_equal 1, answer.interval
     end
 
     it "should set at to the current time by default" do
@@ -15,19 +15,19 @@ describe Answer do
       end
     end
 
-    it "should set count if given" do
-      assert_equal 12, Answer.new(12).count
+    it "should set interval if given" do
+      assert_equal 12, Answer.new(12).interval
     end
 
     it "should set at if given" do
       Timecop.freeze do
-        assert_equal Time.now - 3600, Answer.new(0, Time.now - 3600).at
+        assert_equal Time.now - 3600, Answer.new(1, Time.now - 3600).at
       end
     end
   end
 
   describe "#==" do
-    it "should compare against count" do
+    it "should compare against interval" do
       Timecop.freeze do
         assert Answer.new == Answer.new
         assert Answer.new != Answer.new(10)
@@ -37,26 +37,34 @@ describe Answer do
     it "should compare against at" do
       Timecop.freeze do
         assert Answer.new == Answer.new
-        assert Answer.new != Answer.new(0, Time.now + 60)
+        assert Answer.new != Answer.new(1, Time.now + 60)
       end
     end
 
     it "should compare wether the given object is an Answer" do
       Timecop.freeze do
         assert Answer.new == Answer.new
-        assert Answer.new != stub(count: 0, at: Time.now)
+        assert Answer.new != stub(interval: 1, at: Time.now)
       end
     end
   end
 
   describe "#correct" do
-    it "should increase count by 1" do
+    it "should set interval to 15 for the first correct answer" do
       answer.correct
-      assert_equal 1, answer.count
+      assert_equal 15, answer.interval
+    end
+
+    it "should double interval for subsequent correct answers" do
+      answer.correct
+      answer.correct
+      assert_equal 30, answer.interval
+      answer.correct
+      assert_equal 60, answer.interval
     end
 
     it "should set at to the current time" do
-      answer = Answer.new(0, Time.now - 3600)
+      answer = Answer.new(1, Time.now - 3600)
       Timecop.freeze do
         answer.correct
         assert_equal Time.now, answer.at
@@ -65,14 +73,14 @@ describe Answer do
   end
 
   describe "#incorrect" do
-    it "should set count 0" do
+    it "should set interval to 1" do
       answer = Answer.new(10)
       answer.incorrect
-      assert_equal 0, answer.count
+      assert_equal 1, answer.interval
     end
 
     it "should set at to the current time" do
-      answer = Answer.new(0, Time.now - 3600)
+      answer = Answer.new(1, Time.now - 3600)
       Timecop.freeze do
         answer.incorrect
         assert_equal Time.now, answer.at
@@ -81,18 +89,11 @@ describe Answer do
   end
 
   describe "#repeat_at" do
-    it "should be one minute in the future if count zero (i.e. answer was incorrect)" do
+    it "should add interval in minutes to at" do
       Timecop.freeze do
         assert_equal Time.now + 60, answer.repeat_at
-      end
-    end
-
-    it "should space 15 minutes multiplied with each correct answer" do
-      Timecop.freeze do
-        answer.correct
-        assert_equal Time.now + 15 * 60, answer.repeat_at
-        answer.correct
-        assert_equal Time.now + 2 * 15 * 60, answer.repeat_at
+        answer = Answer.new(30)
+        assert_equal Time.now + 30 * 60, answer.repeat_at
       end
     end
   end

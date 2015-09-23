@@ -28,7 +28,7 @@ describe Session do
       data = {
         id: id,
         deck_id: "alphabet",
-        answers: [true, nil, true]
+        answers: [Answer.new, nil, Answer.new]
       }
       @tempfile.write(data.to_yaml)
       @tempfile.close
@@ -51,12 +51,12 @@ describe Session do
 
     it "should persist a session to disk" do
       Timecop.freeze do
-        session.answer(card_id: 0, flag: "correct")
+        session.answer(card_id: 0, flag: "incorrect")
         session.save
         expected = {
           id: session.id,
           deck_id: session.deck_id,
-          answers: [Answer.new(1)]
+          answers: [Answer.new]
         }
         actual = YAML.load_file(Session.directory.join("#{session.id}.yml"))
         assert_equal expected, actual
@@ -144,32 +144,41 @@ describe Session do
   describe "#answer" do
     it "should initialize a correct answer on the card id by default" do
       Timecop.freeze do
+        answer = Answer.new
+        answer.correct
         session.answer(card_id: 15, flag: "correct")
-        assert_equal Answer.new(1), session.answers[15]
+        assert_equal answer, session.answers[15]
       end
     end
 
     it "should store an incorrect answer on the card id" do
       Timecop.freeze do
+        answer = Answer.new
+        answer.incorrect
         session.answer(card_id: 15, flag: "incorrect")
-        assert_equal Answer.new(0), session.answers[15]
+        assert_equal answer, session.answers[15]
       end
     end
 
     it "should increment a correct answer on the card id" do
+      answer = Answer.new
       Timecop.freeze(Time.now - 120) do
+        answer.correct
         session.answer(card_id: 15, flag: "correct")
       end
       Timecop.freeze do
+        answer.correct
         session.answer(card_id: 15, flag: "correct")
-        assert_equal Answer.new(2, Time.now), session.answers[15]
+        assert_equal answer, session.answers[15]
       end
     end
 
     it "should coerce string ids" do
       Timecop.freeze do
+        answer = Answer.new
+        answer.correct
         session.answer(card_id: "15", flag: "correct")
-        assert_equal Answer.new(1, Time.now), session.answers[15]
+        assert_equal answer, session.answers[15]
       end
     end
 

@@ -1,29 +1,28 @@
 class Answer
 
-  attr_reader :count, :at
+  attr_reader :interval, :at
 
-  def initialize(count = 0, at = Time.now)
-    @count, @at = count, at
+  def initialize(interval = 1, at = Time.now)
+    @interval, @at = interval, at
   end
 
   def correct
-    @count += 1
+    @interval = interval == 1 ? 15 : interval * 2
     @at = Time.now
   end
 
   def incorrect
-    @count = 0
+    @interval = 1
     @at = Time.now
   end
 
   def repeat_at
-    space = count.zero? ? 60 : 15 * 60 * count
-    at + space
+    at + interval * 60
   end
 
   def ==(other)
     other.is_a?(Answer) &&
-      other.count == count &&
+      other.interval == interval &&
       other.at == at
   end
 
