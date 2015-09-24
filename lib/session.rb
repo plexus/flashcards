@@ -11,7 +11,7 @@ class Session
 
   def self.load(id)
     path = directory.join("#{id}.yml")
-    raise NotFound unless File.exist?(path)
+    raise NotFound unless path.file?
     db = YAML::Store.new(path)
     db.transaction do
       values = db.roots.map { |key| db[key] }
@@ -27,7 +27,7 @@ class Session
   end
 
   def save
-    FileUtils.mkdir_p(self.class.directory) unless File.directory?(self.class.directory)
+    directory.mkpath unless directory.directory?
     db = YAML::Store.new(self.class.directory.join("#{id}.yml"))
     db.transaction do
       db[:id], db[:deck_id], db[:answers] = id, deck_id, answers
@@ -53,5 +53,6 @@ class Session
     @answers[card_id.to_i] = true
   end
 
+  def directory; self.class.directory end
 end
 

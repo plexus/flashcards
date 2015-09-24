@@ -21,7 +21,7 @@ class MiniTest::Spec
   end
 
   def reset_storage
-    FileUtils.rm_r(Session.directory) if File.directory?(Session.directory)
+    Session.directory.rmtree if Session.directory.directory?
   end
 
   def assert_selector(expression, **options)
